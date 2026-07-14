@@ -9,13 +9,6 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-:root {
-  --rosa:  #f06292;
-  --pink:  #e91e63;
-  --blau:  #42a5f5;
-  --gruen: #66bb6a;
-}
-
 html, body { height: 100%; }
 
 body {
@@ -54,7 +47,7 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
   cursor: pointer;
   gap: 8px;
   border-radius: 22px;
-  transition: filter 0.1s, transform 0.1s, box-shadow 0.25s;
+  transition: filter 0.3s, transform 0.1s, box-shadow 0.25s, opacity 0.3s;
   position: relative;
   overflow: hidden;
   box-shadow: inset 0 -4px 12px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.35);
@@ -77,15 +70,23 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
 }
 .zone:active { transform: scale(0.97); }
 .zone.flash::after { opacity: 0.45; }
+.zone.inactive {
+  filter: grayscale(1) brightness(0.35);
+  pointer-events: none;
+}
 
 .zone-name {
   font-weight: 900;
   font-size: clamp(12px, 2.6vw, 18px);
   color: rgba(255,255,255,0.95);
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   text-shadow: 0 2px 6px rgba(0,0,0,0.35);
   z-index: 1;
+  max-width: 95%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .zone-symbols {
   display: flex;
@@ -134,7 +135,7 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
   filter: saturate(0.3) brightness(0.8);
 }
 
-/* Floating +1 / -1 / +2 */
+/* Floating score text */
 .float-text {
   position: fixed;
   font-weight: 900;
@@ -144,6 +145,7 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
   transform: translateX(-50%);
   animation: floatUp 0.9s cubic-bezier(0.22,1,0.36,1) forwards;
   text-shadow: 0 3px 10px rgba(0,0,0,0.6);
+  white-space: nowrap;
 }
 @keyframes floatUp {
   0%   { opacity: 1; transform: translateX(-50%) translateY(0) scale(0.6); }
@@ -159,7 +161,7 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
 .zone-gruen { background: linear-gradient(155deg, #a5d6a7 0%, #66bb6a 45%, #1b5e20 100%); grid-column: 3; grid-row: 2; }
 
 .zone-pink  .zone-name,
-.zone-gruen .zone-name { writing-mode: vertical-rl; }
+.zone-gruen .zone-name { writing-mode: vertical-rl; max-height: 95%; }
 .zone-pink  .zone-name { transform: rotate(180deg); }
 .zone-pink  .zone-symbols,
 .zone-gruen .zone-symbols {
@@ -183,7 +185,6 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
   box-shadow: inset 0 0 60px rgba(0,0,0,0.5), 0 4px 20px rgba(0,0,0,0.4);
 }
 
-/* Floating ambient bubbles */
 .bubble {
   position: absolute;
   border-radius: 50%;
@@ -221,7 +222,19 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
   border: 4px dashed #ffd740;
   animation: blitzSpin 1.6s linear infinite;
 }
+#dot.steal::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 4px solid #ce93d8;
+  animation: stealPulse 0.7s ease-in-out infinite;
+}
 @keyframes blitzSpin { to { transform: rotate(360deg); } }
+@keyframes stealPulse {
+  0%,100% { transform: scale(1); opacity: 1; }
+  50%     { transform: scale(1.12); opacity: 0.5; }
+}
 
 @keyframes dotAppear {
   0%   { transform: scale(0) rotate(-40deg); opacity: 0; }
@@ -248,10 +261,8 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
   100% { transform: scale(0); opacity: 0; }
 }
 
-/* Timer ring */
 #timer-ring { position: absolute; border-radius: 50%; pointer-events: none; z-index: 1; }
 
-/* Burst particles */
 .particle {
   position: fixed;
   width: 12px; height: 12px;
@@ -265,7 +276,6 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
   100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.2); }
 }
 
-/* Speed indicator */
 #speed-label {
   position: absolute;
   bottom: 12px;
@@ -280,9 +290,30 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
   transition: color 0.4s;
 }
 #speed-label.hot { color: #ffd740; animation: speedPulse 0.7s ease-in-out infinite; }
-@keyframes speedPulse {
-  0%,100% { opacity: 0.7; } 50% { opacity: 1; }
+@keyframes speedPulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+
+/* Mute button */
+#btn-mute {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 550;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+  font-size: 20px;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
 }
+#btn-mute:active { background: rgba(255,255,255,0.25); }
+#btn-mute.muted { color: rgba(255,255,255,0.3); text-decoration: line-through; }
 
 /* ── Overlays ── */
 .overlay {
@@ -296,11 +327,12 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
   z-index: 500;
   color: white;
   text-align: center;
-  gap: 24px;
-  padding: 24px;
+  gap: 18px;
+  padding: 20px;
+  overflow-y: auto;
 }
 .overlay h1 {
-  font-size: clamp(2.2em, 9vw, 4em);
+  font-size: clamp(2em, 8vw, 3.4em);
   font-weight: 900;
   letter-spacing: 2px;
   background: linear-gradient(90deg, #f48fb1, #42a5f5, #66bb6a, #f48fb1);
@@ -313,28 +345,84 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
 @keyframes titleShimmer { to { background-position: 300% center; } }
 
 .overlay p {
-  font-size: clamp(1em, 3.2vw, 1.25em);
-  line-height: 1.9;
+  font-size: clamp(0.92em, 3vw, 1.15em);
+  line-height: 1.7;
   opacity: 0.92;
 }
-.overlay .color-row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
-.overlay .color-chip {
-  padding: 12px 22px;
-  border-radius: 50px;
-  font-weight: 800;
-  font-size: 1em;
+.hint-blitz { color: #ffd740; font-weight: 800; }
+.hint-steal { color: #ce93d8; font-weight: 800; }
+
+/* Player count selector */
+.count-row { display: flex; gap: 12px; }
+.count-btn {
+  width: 58px; height: 58px;
+  border-radius: 16px;
+  border: 3px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.06);
   color: white;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+  font-family: inherit;
+  font-size: 1.5em;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.15s;
 }
-.hint-blitz {
-  font-size: 0.92em;
-  color: #ffd740;
+.count-btn.selected {
+  border-color: #42a5f5;
+  background: rgba(66,165,245,0.25);
+  box-shadow: 0 0 16px rgba(66,165,245,0.4);
+  transform: scale(1.08);
+}
+
+/* Name inputs */
+.names-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(320px, 85vw);
+}
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.name-chip {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 900;
+  font-size: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.name-row input {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 50px;
+  border: 2px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+  color: white;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 15px;
+  outline: none;
+  min-width: 0;
+}
+.name-row input:focus { border-color: rgba(255,255,255,0.5); }
+.name-row.disabled { opacity: 0.25; pointer-events: none; }
+
+/* Streaks */
+#streaks {
+  font-size: clamp(0.85em, 2.6vw, 1em);
+  color: rgba(255,255,255,0.6);
   font-weight: 800;
 }
 
 .btn {
-  padding: 18px 54px;
-  font-size: clamp(1.15em, 4vw, 1.45em);
+  padding: 16px 50px;
+  font-size: clamp(1.1em, 4vw, 1.4em);
   border: none;
   border-radius: 50px;
   background: linear-gradient(135deg, #f48fb1 0%, #42a5f5 50%, #66bb6a 100%);
@@ -350,10 +438,7 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
 .btn:active { transform: scale(0.94); box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
 
 /* Countdown */
-#overlay-count {
-  background: rgba(8, 8, 28, 0.75);
-  display: none;
-}
+#overlay-count { background: rgba(8, 8, 28, 0.75); display: none; }
 #count-num {
   font-size: clamp(6em, 25vw, 12em);
   font-weight: 900;
@@ -384,6 +469,7 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
   gap: 10px;
   font-size: clamp(1.05em, 3.4vw, 1.35em);
   font-weight: 800;
+  width: min(340px, 88vw);
 }
 .score-row {
   display: flex;
@@ -424,52 +510,55 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
 </head>
 <body>
 
-<!-- Rosa (top) -->
 <div class="zone zone-rosa" id="zone-rosa">
-  <div class="zone-name">Rosa</div>
+  <div class="zone-name" id="name-rosa">Rosa</div>
   <div class="zone-symbols" id="sym-rosa"></div>
 </div>
 
-<!-- Pink (left) -->
 <div class="zone zone-pink" id="zone-pink">
-  <div class="zone-name">Pink</div>
+  <div class="zone-name" id="name-pink">Pink</div>
   <div class="zone-symbols" id="sym-pink"></div>
 </div>
 
-<!-- Center arena -->
 <div class="arena" id="arena">
   <canvas id="timer-ring"></canvas>
   <div id="dot"></div>
   <div id="speed-label">Tempo 1</div>
 </div>
 
-<!-- Grün (right) -->
 <div class="zone zone-gruen" id="zone-gruen">
-  <div class="zone-name">Grün</div>
+  <div class="zone-name" id="name-gruen">Grün</div>
   <div class="zone-symbols" id="sym-gruen"></div>
 </div>
 
-<!-- Blau (bottom) -->
 <div class="zone zone-blau" id="zone-blau">
-  <div class="zone-name">Blau</div>
+  <div class="zone-name" id="name-blau">Blau</div>
   <div class="zone-symbols" id="sym-blau"></div>
 </div>
+
+<button id="btn-mute" title="Ton an/aus">♪</button>
 
 <!-- Start screen -->
 <div class="overlay" id="overlay-start">
   <h1>Farbpunkte</h1>
-  <p>Wenn deine Farbe in der Mitte erscheint,<br>tippe <strong>blitzschnell</strong> auf deine Zone!</p>
-  <div class="color-row">
-    <span class="color-chip" style="background:linear-gradient(135deg,#f06292,#ad1457)">Rosa ○ oben</span>
-    <span class="color-chip" style="background:linear-gradient(135deg,#e91e63,#6a0937)">Pink ♥ links</span>
-    <span class="color-chip" style="background:linear-gradient(135deg,#42a5f5,#0d47a1)">Blau ≈ unten</span>
-    <span class="color-chip" style="background:linear-gradient(135deg,#66bb6a,#1b5e20)">Grün ▌ rechts</span>
+
+  <p style="font-weight:800">Wie viele Spieler?</p>
+  <div class="count-row">
+    <button class="count-btn" data-count="2">2</button>
+    <button class="count-btn" data-count="3">3</button>
+    <button class="count-btn selected" data-count="4">4</button>
   </div>
-  <p style="opacity:0.75; font-size:0.95em">
-    Falsch getippt = 1 Punkt weg!<br>
-    <span class="hint-blitz">Goldener Blitz-Punkt = 2 Punkte!</span><br>
-    Wer zuerst 5 hat, gewinnt. Es wird immer schneller!
+
+  <div class="names-grid" id="names-grid"></div>
+
+  <p style="opacity:0.75; font-size:0.9em">
+    Deine Farbe erscheint = schnell tippen! Falsch = 1 Punkt weg.<br>
+    <span class="hint-blitz">Gold-Punkt = 2 Punkte</span> ·
+    <span class="hint-steal">Lila ◆ = wer zuerst tippt, klaut dem Ersten 1 Punkt</span>
   </p>
+
+  <div id="streaks"></div>
+
   <button class="btn" id="btn-start">Los geht's!</button>
 </div>
 
@@ -488,17 +577,30 @@ body.screen-shake { animation: screenShake 0.35s ease-out; }
 
 <script>
 const PLAYERS = {
-  rosa:  { color: '#f06292', bg: 'linear-gradient(155deg,#f8a5c2,#f06292 45%,#ad1457)', name: 'Rosa',  emoji: '○', score: 0 },
-  pink:  { color: '#e91e63', bg: 'linear-gradient(155deg,#f48fb1,#e91e63 45%,#6a0937)', name: 'Pink',  emoji: '♥', score: 0 },
-  blau:  { color: '#42a5f5', bg: 'linear-gradient(155deg,#90caf9,#42a5f5 45%,#0d47a1)', name: 'Blau',  emoji: '≈', score: 0 },
-  gruen: { color: '#66bb6a', bg: 'linear-gradient(155deg,#a5d6a7,#66bb6a 45%,#1b5e20)', name: 'Grün',  emoji: '▌', score: 0 },
+  rosa:  { color: '#f06292', bg: 'linear-gradient(155deg,#f8a5c2,#f06292 45%,#ad1457)', label: 'Rosa',  emoji: '○', score: 0 },
+  pink:  { color: '#e91e63', bg: 'linear-gradient(155deg,#f48fb1,#e91e63 45%,#6a0937)', label: 'Pink',  emoji: '♥', score: 0 },
+  blau:  { color: '#42a5f5', bg: 'linear-gradient(155deg,#90caf9,#42a5f5 45%,#0d47a1)', label: 'Blau',  emoji: '≈', score: 0 },
+  gruen: { color: '#66bb6a', bg: 'linear-gradient(155deg,#a5d6a7,#66bb6a 45%,#1b5e20)', label: 'Grün',  emoji: '▌', score: 0 },
+};
+// Zone activation order per player count: 2 = top/bottom, 3 = +left, 4 = all
+const COUNT_ZONES = {
+  2: ['rosa', 'blau'],
+  3: ['rosa', 'blau', 'pink'],
+  4: ['rosa', 'blau', 'pink', 'gruen'],
 };
 const MAX = 5;
 const BASE_DOT_MS = 2600;
 const MIN_DOT_MS = 1300;
 const BLITZ_CHANCE = 0.14;
+const STEAL_CHANCE = 0.10;
 
-let current = null;
+let playerCount = parseInt(localStorage.getItem('fp_count') || '4');
+let activeKeys = COUNT_ZONES[playerCount];
+let names = JSON.parse(localStorage.getItem('fp_names') || '{}');
+let wins  = JSON.parse(localStorage.getItem('fp_wins')  || '{}');
+let muted = localStorage.getItem('fp_muted') === '1';
+
+let current = null;      // player key, or '__steal__'
 let isBlitz = false;
 let dotMs = BASE_DOT_MS;
 let dotTimer = null;
@@ -508,10 +610,15 @@ let active = false;
 let tapLocked = false;
 let lastTickSecond = -1;
 
+function displayName(key) {
+  return (names[key] || '').trim() || PLAYERS[key].label;
+}
+
 // ── Audio ─────────────────────────────────────────────────────
 const actx = new (window.AudioContext || window.webkitAudioContext)();
 
 function beep(freq, dur, type = 'sine', vol = 0.3, delay = 0) {
+  if (muted) return;
   try {
     const t = actx.currentTime + delay;
     const o = actx.createOscillator();
@@ -526,6 +633,7 @@ function beep(freq, dur, type = 'sine', vol = 0.3, delay = 0) {
 
 function soundCollect()  { beep(784,0.12); beep(988,0.12,'sine',0.3,0.07); beep(1319,0.2,'sine',0.3,0.14); }
 function soundBlitz()    { beep(880,0.1); beep(1109,0.1,'sine',0.3,0.06); beep(1319,0.1,'sine',0.3,0.12); beep(1760,0.25,'sine',0.35,0.18); }
+function soundSteal()    { beep(659,0.09,'triangle',0.3); beep(554,0.09,'triangle',0.3,0.08); beep(880,0.22,'triangle',0.32,0.16); }
 function soundMiss()     { beep(220, 0.3, 'sawtooth', 0.18); beep(165, 0.35, 'sawtooth', 0.15, 0.12); }
 function soundPenalty()  { beep(280, 0.12, 'sawtooth', 0.25); beep(180, 0.28, 'sawtooth', 0.22, 0.1); }
 function soundTick()     { beep(1200, 0.04, 'square', 0.08); }
@@ -534,9 +642,79 @@ function soundWin() {
   [523,659,784,1047,1319,1568].forEach((f,i) => beep(f, 0.22, 'sine', 0.3, i * 0.11));
 }
 
+// ── Haptics ───────────────────────────────────────────────────
+function vibrate(pattern) {
+  if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(_) {} }
+}
+
+// ── Mute ──────────────────────────────────────────────────────
+const muteBtn = document.getElementById('btn-mute');
+function renderMute() { muteBtn.classList.toggle('muted', muted); }
+muteBtn.addEventListener('click', () => {
+  muted = !muted;
+  localStorage.setItem('fp_muted', muted ? '1' : '0');
+  renderMute();
+});
+renderMute();
+
+// ── Start screen: player count + names ────────────────────────
+function renderCountButtons() {
+  document.querySelectorAll('.count-btn').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.count) === playerCount);
+  });
+}
+document.querySelectorAll('.count-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    playerCount = parseInt(b.dataset.count);
+    activeKeys = COUNT_ZONES[playerCount];
+    localStorage.setItem('fp_count', String(playerCount));
+    renderCountButtons();
+    renderNameInputs();
+    applyZoneActivation();
+  });
+});
+
+function renderNameInputs() {
+  const grid = document.getElementById('names-grid');
+  grid.innerHTML = '';
+  for (const key of COUNT_ZONES[4]) {
+    const p = PLAYERS[key];
+    const isActive = activeKeys.includes(key);
+    const row = document.createElement('div');
+    row.className = 'name-row' + (isActive ? '' : ' disabled');
+    row.innerHTML = `
+      <span class="name-chip" style="background:${p.bg}">${p.emoji}</span>
+      <input type="text" maxlength="12" placeholder="${p.label}" value="${(names[key] || '').replace(/"/g,'')}" data-key="${key}">
+    `;
+    grid.appendChild(row);
+  }
+  grid.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      names[inp.dataset.key] = inp.value;
+      localStorage.setItem('fp_names', JSON.stringify(names));
+    });
+  });
+}
+
+function renderStreaks() {
+  const entries = Object.entries(wins).filter(([,n]) => n > 0).sort((a,b) => b[1]-a[1]);
+  document.getElementById('streaks').textContent = entries.length
+    ? 'Siege: ' + entries.map(([n,c]) => `${n} ${c}×`).join(' · ')
+    : '';
+}
+
+function applyZoneActivation() {
+  for (const key of COUNT_ZONES[4]) {
+    const zone = document.getElementById('zone-' + key);
+    zone.classList.toggle('inactive', !activeKeys.includes(key));
+    document.getElementById('name-' + key).textContent = displayName(key);
+  }
+}
+
 // ── Score UI ──────────────────────────────────────────────────
 function buildScores() {
-  for (const [key, p] of Object.entries(PLAYERS)) {
+  for (const key of activeKeys) {
+    const p = PLAYERS[key];
     p.score = 0;
     const el = document.getElementById('sym-' + key);
     el.innerHTML = '';
@@ -612,7 +790,7 @@ function burstParticles(x, y, color, count = 14) {
 
 // ── Speed ramp ────────────────────────────────────────────────
 function updateSpeed() {
-  const top = Math.max(...Object.values(PLAYERS).map(p => p.score));
+  const top = Math.max(0, ...activeKeys.map(k => PLAYERS[k].score));
   dotMs = BASE_DOT_MS - (BASE_DOT_MS - MIN_DOT_MS) * (top / (MAX - 1));
   dotMs = Math.max(MIN_DOT_MS, dotMs);
   const level = 1 + Math.round((1 - (dotMs - MIN_DOT_MS) / (BASE_DOT_MS - MIN_DOT_MS)) * 4);
@@ -638,6 +816,11 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
+function ringColor() {
+  if (current === '__steal__') return '#ce93d8';
+  return current ? PLAYERS[current].color : '#ffffff';
+}
+
 function drawRing(progress, color) {
   const R = canvas._R || 60;
   const cx = canvas.width / 2, cy = canvas.height / 2;
@@ -661,8 +844,7 @@ function animateRing() {
   if (!timerStart || !current) return;
   const elapsed = Date.now() - timerStart;
   const progress = Math.max(0, 1 - elapsed / dotMs);
-  drawRing(progress, PLAYERS[current].color);
-  // Urgency ticks in last 30%
+  drawRing(progress, ringColor());
   if (progress < 0.3 && progress > 0) {
     const tickPhase = Math.floor(elapsed / 180);
     if (tickPhase !== lastTickSecond) { lastTickSecond = tickPhase; soundTick(); }
@@ -673,15 +855,18 @@ function animateRing() {
 
 // ── Dot ───────────────────────────────────────────────────────
 function pickPlayer() {
-  const keys = Object.keys(PLAYERS);
-  const weights = keys.map(k => MAX - PLAYERS[k].score + 1);
+  const weights = activeKeys.map(k => MAX - PLAYERS[k].score + 1);
   const total = weights.reduce((a,b)=>a+b,0);
   let r = Math.random() * total;
-  for (let i = 0; i < keys.length; i++) {
+  for (let i = 0; i < activeKeys.length; i++) {
     r -= weights[i];
-    if (r <= 0) return keys[i];
+    if (r <= 0) return activeKeys[i];
   }
-  return keys[keys.length - 1];
+  return activeKeys[activeKeys.length - 1];
+}
+
+function anyoneHasPoints() {
+  return activeKeys.some(k => PLAYERS[k].score > 0);
 }
 
 function showDot() {
@@ -689,16 +874,25 @@ function showDot() {
   tapLocked = false;
   lastTickSecond = -1;
 
-  current = pickPlayer();
-  isBlitz = Math.random() < BLITZ_CHANCE;
-
-  const p = PLAYERS[current];
-  dotEl.className = 'showing' + (isBlitz ? ' blitz' : '');
-  dotEl.style.background = p.bg;
-  dotEl.style.boxShadow = isBlitz
-    ? `0 0 50px #ffd740cc, 0 0 100px ${p.color}66`
-    : `0 0 45px ${p.color}99, 0 0 90px ${p.color}44`;
-  dotEl.textContent = p.emoji;
+  // Steal dot only makes sense if someone has a point to steal
+  if (Math.random() < STEAL_CHANCE && anyoneHasPoints()) {
+    current = '__steal__';
+    isBlitz = false;
+    dotEl.className = 'showing steal';
+    dotEl.style.background = 'linear-gradient(155deg,#e1bee7,#ab47bc 45%,#4a148c)';
+    dotEl.style.boxShadow = '0 0 50px #ce93d8cc, 0 0 100px #ab47bc66';
+    dotEl.textContent = '◆';
+  } else {
+    current = pickPlayer();
+    isBlitz = Math.random() < BLITZ_CHANCE;
+    const p = PLAYERS[current];
+    dotEl.className = 'showing' + (isBlitz ? ' blitz' : '');
+    dotEl.style.background = p.bg;
+    dotEl.style.boxShadow = isBlitz
+      ? `0 0 50px #ffd740cc, 0 0 100px ${p.color}66`
+      : `0 0 45px ${p.color}99, 0 0 90px ${p.color}44`;
+    dotEl.textContent = p.emoji;
+  }
   resizeCanvas();
 
   timerStart = Date.now();
@@ -730,15 +924,66 @@ function scheduleNext() {
   setTimeout(showDot, delay);
 }
 
+// ── Steal resolution ──────────────────────────────────────────
+function resolveSteal(taker) {
+  // Steal 1 point from the highest-scoring OTHER player
+  const victims = activeKeys
+    .filter(k => k !== taker && PLAYERS[k].score > 0)
+    .sort((a, b) => PLAYERS[b].score - PLAYERS[a].score);
+  const takerZone = document.getElementById('zone-' + taker);
+  const tp = PLAYERS[taker];
+
+  if (!victims.length) {
+    // Nobody to steal from — consolation +1 if not maxed
+    if (tp.score < MAX) { markCollected(taker, tp.score); tp.score++; }
+    showFloatText(takerZone, '+1', '#ce93d8');
+  } else {
+    const victim = victims[0];
+    const vp = PLAYERS[victim];
+    vp.score--;
+    markUncollected(victim, vp.score);
+    const victimZone = document.getElementById('zone-' + victim);
+    shakeZone(victimZone);
+    showFloatText(victimZone, '−1', '#ce93d8');
+    if (tp.score < MAX) { markCollected(taker, tp.score); tp.score++; }
+    showFloatText(takerZone, '+1 geklaut!', '#ce93d8');
+  }
+  soundSteal();
+  vibrate(40);
+  updateSpeed();
+
+  if (tp.score >= MAX) {
+    setTimeout(() => endGame(taker), 400);
+  } else {
+    setTimeout(() => { clearDot(); scheduleNext(); }, 350);
+  }
+}
+
 // ── Tap handling ──────────────────────────────────────────────
 function tap(color) {
-  if (!active || tapLocked) return;
+  if (!active || tapLocked || !activeKeys.includes(color)) return;
   actx.resume();
 
   const zone = document.getElementById('zone-' + color);
 
   if (!current) {
     flashZone(zone);
+    return;
+  }
+
+  // Steal dot: first tapper wins it, no penalties
+  if (current === '__steal__') {
+    clearTimeout(dotTimer);
+    cancelAnimationFrame(rafId);
+    c.clearRect(0, 0, canvas.width, canvas.height);
+    tapLocked = true;
+    current = null;
+
+    flashZone(zone);
+    const dotRect = dotEl.getBoundingClientRect();
+    burstParticles(dotRect.left + dotRect.width/2, dotRect.top + dotRect.height/2, '#ce93d8', 18);
+    dotEl.className = 'collect';
+    resolveSteal(color);
     return;
   }
 
@@ -753,6 +998,7 @@ function tap(color) {
 
     flashZone(zone);
     showFloatText(zone, '+' + gained, isBlitz ? '#ffd740' : '#ffffff');
+    vibrate(isBlitz ? [30, 40, 30] : 30);
 
     const dotRect = dotEl.getBoundingClientRect();
     burstParticles(dotRect.left + dotRect.width/2, dotRect.top + dotRect.height/2,
@@ -785,6 +1031,7 @@ function tap(color) {
     screenShake();
     showFloatText(zone, '−1', '#ff5252');
     soundPenalty();
+    vibrate([60, 40, 60]);
   }
 }
 
@@ -793,13 +1040,12 @@ function flashZone(zone) {
   setTimeout(() => zone.classList.remove('flash'), 200);
 }
 
-// Zone listeners (pointerdown = fastest response)
-for (const key of Object.keys(PLAYERS)) {
+for (const key of COUNT_ZONES[4]) {
   document.getElementById('zone-' + key).addEventListener('pointerdown', () => tap(key));
 }
 
-// Keyboard: W=Rosa A=Pink S=Blau D=Grün
 document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
   const map = { w:'rosa', a:'pink', s:'blau', d:'gruen' };
   const k = map[e.key.toLowerCase()];
   if (k) tap(k);
@@ -827,9 +1073,10 @@ spawnBubbles();
 function startGame() {
   document.getElementById('overlay-start').style.display = 'none';
   document.getElementById('overlay-win').style.display = 'none';
-  for (const key of Object.keys(PLAYERS)) {
+  for (const key of COUNT_ZONES[4]) {
     document.getElementById('zone-' + key).classList.remove('winning');
   }
+  applyZoneActivation();
   buildScores();
   runCountdown();
 }
@@ -869,25 +1116,34 @@ function endGame(winner) {
   c.clearRect(0, 0, canvas.width, canvas.height);
   clearDot();
   soundWin();
+  vibrate([80, 50, 80, 50, 150]);
   spawnConfetti();
 
   const p = PLAYERS[winner];
+  const wName = displayName(winner);
   document.getElementById('zone-' + winner).classList.add('winning');
 
+  // Persist win streak by name
+  wins[wName] = (wins[wName] || 0) + 1;
+  localStorage.setItem('fp_wins', JSON.stringify(wins));
+  renderStreaks();
+
   document.getElementById('win-star').style.color = p.color;
-  document.getElementById('win-title').textContent = p.name + ' gewinnt!';
+  document.getElementById('win-title').textContent = wName + ' gewinnt!';
   document.getElementById('win-title').style.color = p.color;
 
-  const rows = Object.values(PLAYERS)
+  const rows = activeKeys
+    .map(k => PLAYERS[k])
     .sort((a,b) => b.score - a.score)
-    .map((pl, i) =>
-      `<div class="score-row ${i === 0 ? 'first' : ''}">
+    .map((pl, i) => {
+      const key = Object.keys(PLAYERS).find(k => PLAYERS[k] === pl);
+      return `<div class="score-row ${i === 0 ? 'first' : ''}">
          <span class="rank">${i+1}.</span>
          <span style="color:${pl.color}">${pl.emoji}</span>
-         <span>${pl.name}</span>
+         <span>${displayName(key)}</span>
          <span style="margin-left:auto; color:${pl.color}">${pl.score} ${pl.score === 1 ? 'Punkt' : 'Punkte'}</span>
-       </div>`
-    ).join('');
+       </div>`;
+    }).join('');
   document.getElementById('win-scores').innerHTML = rows;
 
   setTimeout(() => {
@@ -918,6 +1174,12 @@ function spawnConfetti() {
     }, Math.random() * 1200);
   }
 }
+
+// ── Init ──────────────────────────────────────────────────────
+renderCountButtons();
+renderNameInputs();
+renderStreaks();
+applyZoneActivation();
 </script>
 </body>
 </html>
