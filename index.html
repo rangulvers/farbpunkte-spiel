@@ -81,6 +81,45 @@ body {
   100% { transform: scale(1); }
 }
 
+.sym.lose {
+  animation: symLose 0.45s ease-out forwards;
+}
+@keyframes symLose {
+  0%   { transform: scale(1); opacity: 1; }
+  35%  { transform: scale(1.4); opacity: 0.9; filter: brightness(2); }
+  100% { transform: scale(0.85); opacity: 0.25; filter: none; }
+}
+
+/* Shake zone on penalty */
+@keyframes shake {
+  0%,100% { transform: scale(1) rotate(0deg); }
+  18%  { transform: scale(0.93) rotate(-3deg); }
+  36%  { transform: scale(0.93) rotate(3deg); }
+  54%  { transform: scale(0.96) rotate(-2deg); }
+  72%  { transform: scale(0.96) rotate(2deg); }
+  90%  { transform: scale(0.98) rotate(-1deg); }
+}
+.zone.shaking { animation: shake 0.42s ease-out; }
+
+/* Floating +1 / -1 */
+.float-text {
+  position: fixed;
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
+  font-weight: 900;
+  font-size: clamp(1.6em, 5vw, 2.2em);
+  pointer-events: none;
+  z-index: 400;
+  transform: translateX(-50%);
+  animation: floatUp 0.85s cubic-bezier(0.22,1,0.36,1) forwards;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0) scale(0.8); }
+  20%  { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1.2); }
+  70%  { opacity: 0.9; transform: translateX(-50%) translateY(-50px) scale(1); }
+  100% { opacity: 0;   transform: translateX(-50%) translateY(-80px) scale(0.8); }
+}
+
 /* Zone colors */
 .zone-rosa  { background: linear-gradient(160deg, #f48fb1, #c2185b); grid-column: 2; grid-row: 1; }
 .zone-blau  { background: linear-gradient(160deg, #64b5f6, #1565c0); grid-column: 2; grid-row: 3; }
@@ -328,6 +367,7 @@ function beep(freq, dur, type = 'sine', vol = 0.3) {
 function soundCollect() { beep(880, 0.15); setTimeout(()=>beep(1320,0.15),80); }
 function soundMiss()    { beep(220, 0.25, 'sawtooth', 0.2); }
 function soundWrong()   { beep(330, 0.1, 'square', 0.1); }
+function soundPenalty() { beep(280, 0.12, 'sawtooth', 0.25); setTimeout(()=>beep(200,0.22,'sawtooth',0.2),90); }
 function soundWin()     {
   [523,659,784,1047].forEach((f,i) => setTimeout(()=>beep(f,0.2),i*100));
 }
@@ -354,6 +394,35 @@ function markCollected(key, score) {
   if (!s) return;
   s.classList.add('collected', 'pop');
   s.addEventListener('animationend', ()=>s.classList.remove('pop'), {once:true});
+}
+
+function markUncollected(key, score) {
+  // score is already decremented; unmark index = score (was score+1 before)
+  const s = document.getElementById(`s-${key}-${score}`);
+  if (!s) return;
+  s.classList.add('lose');
+  s.addEventListener('animationend', () => {
+    s.classList.remove('collected', 'lose');
+  }, {once:true});
+}
+
+function showFloatText(zone, text, color) {
+  const rect = zone.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float-text';
+  el.textContent = text;
+  el.style.color = color;
+  el.style.left = (rect.left + rect.width / 2) + 'px';
+  el.style.top  = (rect.top  + rect.height / 2) + 'px';
+  document.body.appendChild(el);
+  el.addEventListener('animationend', () => el.remove(), {once:true});
+}
+
+function shakeZone(zone) {
+  zone.classList.remove('shaking');
+  void zone.offsetWidth; // reflow to restart animation
+  zone.classList.add('shaking');
+  zone.addEventListener('animationend', () => zone.classList.remove('shaking'), {once:true});
 }
 
 // ── Timer ring ─────────────────────────────────────────────────
@@ -467,8 +536,8 @@ function tap(color) {
   const zone = document.getElementById('zone-' + color);
 
   if (!current) {
-    // Nothing showing — wrong tap
-    flashZone(zone, 'wrong');
+    // Nothing showing — no penalty, just light flash
+    flashZone(zone, 'flash');
     return;
   }
 
@@ -480,6 +549,7 @@ function tap(color) {
     tapLocked = true;
 
     flashZone(zone, 'flash');
+    showFloatText(zone, '+1', '#ffffff');
     dotEl.style.animation = 'dotCollect 0.3s ease-out forwards';
     soundCollect();
 
@@ -498,9 +568,15 @@ function tap(color) {
       }, 320);
     }
   } else {
-    // Wrong color
-    flashZone(zone, 'wrong');
-    soundWrong();
+    // Wrong color while someone else's dot is showing — penalty
+    const p = PLAYERS[color];
+    if (p.score > 0) {
+      p.score--;
+      markUncollected(color, p.score);
+    }
+    shakeZone(zone);
+    showFloatText(zone, '−1', '#ff5252');
+    soundPenalty();
   }
 }
 
