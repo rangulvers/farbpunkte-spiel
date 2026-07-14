@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Farbpunkte</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  width: 100dvw;
+  height: 100dvh;
+  display: grid;
+  grid-template-columns: 110px 1fr 110px;
+  grid-template-rows: 110px 1fr 110px;
+  background: #0d0d1a;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Comic Sans MS', cursive, sans-serif;
+  touch-action: none;
+  user-select: none;
+}
+
+/* ── Player zones ── */
+.zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  gap: 6px;
+  border-radius: 14px;
+  transition: filter 0.08s, transform 0.08s;
+  position: relative;
+  overflow: hidden;
+}
+.zone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  transition: opacity 0.08s;
+  border-radius: inherit;
+}
+.zone.flash::after { opacity: 0.4; }
+.zone.wrong::after { opacity: 0; background: red; }
+
+.zone-name {
+  font-weight: 900;
+  font-size: clamp(10px, 2.5vw, 16px);
+  color: rgba(255,255,255,0.9);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.zone-symbols {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 90px;
+}
+.sym {
+  font-size: clamp(12px, 2.8vw, 20px);
+  opacity: 0.25;
+  transition: opacity 0.25s, transform 0.25s;
+  filter: grayscale(0.5);
+}
+.sym.collected {
+  opacity: 1;
+  filter: none;
+  drop-shadow: 0 0 6px currentColor;
+}
+.sym.pop {
+  animation: symPop 0.4s ease-out forwards;
+}
+@keyframes symPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.6) rotate(-10deg); }
+  100% { transform: scale(1); }
+}
+
+/* Zone colors */
+.zone-rosa  { background: linear-gradient(160deg, #f48fb1, #c2185b); grid-column: 2; grid-row: 1; }
+.zone-blau  { background: linear-gradient(160deg, #64b5f6, #1565c0); grid-column: 2; grid-row: 3; }
+.zone-pink  { background: linear-gradient(160deg, #f06292, #880e4f); grid-column: 1; grid-row: 2; }
+.zone-gruen { background: linear-gradient(160deg, #81c784, #2e7d32); grid-column: 3; grid-row: 2; }
+
+/* Side zones: vertical layout */
+.zone-pink  .zone-name,
+.zone-gruen .zone-name { writing-mode: vertical-rl; }
+.zone-pink  .zone-name { transform: rotate(180deg); }
+.zone-pink  .zone-symbols,
+.zone-gruen .zone-symbols {
+  flex-direction: column;
+  max-width: none;
+  max-height: 90px;
+}
+
+/* ── Corners ── */
+.corner { background: #0d0d1a; }
+.corner-tl { grid-column:1; grid-row:1; }
+.corner-tr { grid-column:3; grid-row:1; }
+.corner-bl { grid-column:1; grid-row:3; }
+.corner-br { grid-column:3; grid-row:3; }
+
+/* ── Center arena ── */
+.arena {
+  grid-column: 2;
+  grid-row: 2;
+  background: #16213e;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Dot */
+#dot {
+  width: clamp(70px, 14vw, 110px);
+  height: clamp(70px, 14vw, 110px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(28px, 6vw, 46px);
+  position: absolute;
+  pointer-events: none;
+  box-shadow: 0 0 0 0 currentColor;
+}
+
+@keyframes dotAppear {
+  0%   { transform: scale(0) rotate(-30deg); opacity: 0; }
+  60%  { transform: scale(1.15) rotate(5deg); opacity: 1; }
+  80%  { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes dotVanish {
+  0%   { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0); opacity: 0; }
+}
+@keyframes dotCollect {
+  0%   { transform: scale(1); opacity: 1; }
+  50%  { transform: scale(1.6); opacity: 0.7; }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+/* Timer ring */
+#timer-ring {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* ── Overlays ── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(5, 5, 20, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  color: white;
+  text-align: center;
+  gap: 22px;
+  padding: 24px;
+}
+.overlay h1 {
+  font-size: clamp(2em, 8vw, 3.5em);
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+.overlay p {
+  font-size: clamp(0.95em, 3vw, 1.2em);
+  line-height: 1.9;
+  opacity: 0.9;
+}
+.overlay .color-row {
+  display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+}
+.overlay .color-chip {
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 1em;
+  color: white;
+}
+.btn {
+  padding: 16px 48px;
+  font-size: clamp(1.1em, 4vw, 1.5em);
+  border: none;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #f48fb1 0%, #42a5f5 50%, #66bb6a 100%);
+  color: white;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 800;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.5);
+  transition: transform 0.1s;
+  letter-spacing: 1px;
+}
+.btn:active { transform: scale(0.94); }
+
+/* Win scores */
+#win-scores { line-height: 2.2; font-size: clamp(1.1em, 3.5vw, 1.4em); }
+
+/* Confetti */
+.confetti-piece {
+  position: fixed;
+  width: 10px; height: 16px;
+  opacity: 0;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 300;
+  animation: confettiFall 1.8s ease-in forwards;
+}
+@keyframes confettiFall {
+  0%   { opacity: 1; transform: translateY(-20px) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+}
+
+/* Pulse the winning zone */
+@keyframes zonePulse {
+  0%, 100% { filter: brightness(1); }
+  50%       { filter: brightness(1.5) saturate(1.3); }
+}
+.zone.winning { animation: zonePulse 0.5s infinite; }
+</style>
+</head>
+<body>
+
+<!-- Corners -->
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<!-- Rosa (top) -->
+<div class="zone zone-rosa" id="zone-rosa" onpointerdown="tap('rosa')">
+  <div class="zone-name">Rosa</div>
+  <div class="zone-symbols" id="sym-rosa"></div>
+</div>
+
+<!-- Pink (left) -->
+<div class="zone zone-pink" id="zone-pink" onpointerdown="tap('pink')">
+  <div class="zone-name">Pink</div>
+  <div class="zone-symbols" id="sym-pink"></div>
+</div>
+
+<!-- Center arena -->
+<div class="arena">
+  <canvas id="timer-ring"></canvas>
+  <div id="dot"></div>
+</div>
+
+<!-- Grün (right) -->
+<div class="zone zone-gruen" id="zone-gruen" onpointerdown="tap('gruen')">
+  <div class="zone-name">Grün</div>
+  <div class="zone-symbols" id="sym-gruen"></div>
+</div>
+
+<!-- Blau (bottom) -->
+<div class="zone zone-blau" id="zone-blau" onpointerdown="tap('blau')">
+  <div class="zone-name">Blau</div>
+  <div class="zone-symbols" id="sym-blau"></div>
+</div>
+
+<!-- Start screen -->
+<div class="overlay" id="overlay-start">
+  <h1>Farbpunkte</h1>
+  <p>Wenn deine Farbe erscheint,<br>tippe <strong>schnell</strong> auf deine Zone!</p>
+  <div class="color-row">
+    <span class="color-chip" style="background:#c2185b">Rosa ○ oben</span>
+    <span class="color-chip" style="background:#880e4f">Pink ♥ links</span>
+    <span class="color-chip" style="background:#1565c0">Blau ≈ unten</span>
+    <span class="color-chip" style="background:#2e7d32">Grün ▌ rechts</span>
+  </div>
+  <p style="opacity:0.65; font-size:0.9em">Wer zuerst alle 5 sammelt, gewinnt!</p>
+  <button class="btn" onclick="startGame()">Los geht's!</button>
+</div>
+
+<!-- Win screen -->
+<div class="overlay" id="overlay-win" style="display:none">
+  <h1 id="win-title"></h1>
+  <div id="win-scores"></div>
+  <button class="btn" onclick="resetGame()">Nochmal!</button>
+</div>
+
+<script>
+const PLAYERS = {
+  rosa:  { color: '#f06292', bg: 'linear-gradient(160deg,#f48fb1,#c2185b)', name: 'Rosa',  emoji: '○', key: 'w', score: 0 },
+  pink:  { color: '#f50057', bg: 'linear-gradient(160deg,#f06292,#880e4f)', name: 'Pink',  emoji: '♥', key: 'a', score: 0 },
+  blau:  { color: '#42a5f5', bg: 'linear-gradient(160deg,#64b5f6,#1565c0)', name: 'Blau',  emoji: '≈', key: 's', score: 0 },
+  gruen: { color: '#66bb6a', bg: 'linear-gradient(160deg,#81c784,#2e7d32)', name: 'Grün',  emoji: '▌', key: 'd', score: 0 },
+};
+const MAX = 5;
+const DOT_MS = 2600;
+
+let current = null;
+let dotTimer = null;
+let timerStart = null;
+let rafId = null;
+let active = false;
+let tapLocked = false;
+
+// ── Audio (simple beeps) ──────────────────────────────────────
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+function beep(freq, dur, type = 'sine', vol = 0.3) {
+  try {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    o.start(ctx.currentTime);
+    o.stop(ctx.currentTime + dur);
+  } catch(_) {}
+}
+
+function soundCollect() { beep(880, 0.15); setTimeout(()=>beep(1320,0.15),80); }
+function soundMiss()    { beep(220, 0.25, 'sawtooth', 0.2); }
+function soundWrong()   { beep(330, 0.1, 'square', 0.1); }
+function soundWin()     {
+  [523,659,784,1047].forEach((f,i) => setTimeout(()=>beep(f,0.2),i*100));
+}
+
+// ── Score UI ──────────────────────────────────────────────────
+function buildScores() {
+  for (const [key, p] of Object.entries(PLAYERS)) {
+    p.score = 0;
+    const el = document.getElementById('sym-' + key);
+    el.innerHTML = '';
+    for (let i = 0; i < MAX; i++) {
+      const s = document.createElement('span');
+      s.className = 'sym';
+      s.id = `s-${key}-${i}`;
+      s.textContent = p.emoji;
+      s.style.color = p.color;
+      el.appendChild(s);
+    }
+  }
+}
+
+function markCollected(key, score) {
+  const s = document.getElementById(`s-${key}-${score-1}`);
+  if (!s) return;
+  s.classList.add('collected', 'pop');
+  s.addEventListener('animationend', ()=>s.classList.remove('pop'), {once:true});
+}
+
+// ── Timer ring ─────────────────────────────────────────────────
+const canvas = document.getElementById('timer-ring');
+const c = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const dotEl = document.getElementById('dot');
+  const dotSize = dotEl.offsetWidth || 100;
+  const R = dotSize * 0.75;
+  canvas.width  = R * 2 + 20;
+  canvas.height = R * 2 + 20;
+  canvas.style.width  = canvas.width + 'px';
+  canvas.style.height = canvas.height + 'px';
+  canvas._R = R;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function drawRing(progress, color) {
+  const R = canvas._R || 50;
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  // Track
+  c.beginPath();
+  c.arc(cx, cy, R, 0, Math.PI * 2);
+  c.strokeStyle = 'rgba(255,255,255,0.12)';
+  c.lineWidth = 6;
+  c.stroke();
+  // Progress (decreasing clockwise)
+  if (progress > 0) {
+    c.beginPath();
+    c.arc(cx, cy, R, -Math.PI/2, -Math.PI/2 + (1 - progress) * Math.PI * 2, false);
+    c.strokeStyle = color;
+    c.lineWidth = 6;
+    c.lineCap = 'round';
+    c.stroke();
+  }
+}
+
+function animateRing() {
+  if (!timerStart || !current) return;
+  const elapsed = Date.now() - timerStart;
+  const progress = Math.max(0, 1 - elapsed / DOT_MS);
+  drawRing(progress, PLAYERS[current].color);
+  if (progress > 0) rafId = requestAnimationFrame(animateRing);
+  else c.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// ── Dot ───────────────────────────────────────────────────────
+const dotEl = document.getElementById('dot');
+
+function showDot() {
+  if (!active) return;
+  tapLocked = false;
+
+  const keys = Object.keys(PLAYERS);
+  // Weighted: bias toward players with fewer points (makes it exciting)
+  const weights = keys.map(k => MAX - PLAYERS[k].score + 1);
+  const total = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random() * total;
+  let chosen = keys[0];
+  for (let i = 0; i < keys.length; i++) {
+    r -= weights[i];
+    if (r <= 0) { chosen = keys[i]; break; }
+  }
+  current = chosen;
+
+  const p = PLAYERS[current];
+  dotEl.style.cssText = `
+    background: ${p.bg || p.color};
+    color: white;
+    box-shadow: 0 0 40px ${p.color}88, 0 0 80px ${p.color}44;
+    animation: dotAppear 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  `;
+  dotEl.textContent = p.emoji;
+  resizeCanvas();
+
+  timerStart = Date.now();
+  cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(animateRing);
+
+  dotTimer = setTimeout(missedDot, DOT_MS);
+}
+
+function missedDot() {
+  cancelAnimationFrame(rafId);
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  dotEl.style.animation = 'dotVanish 0.25s ease-in forwards';
+  soundMiss();
+  current = null;
+  tapLocked = true;
+  setTimeout(() => {
+    dotEl.textContent = '';
+    dotEl.style.cssText = '';
+    scheduleNext();
+  }, 280);
+}
+
+function scheduleNext() {
+  const delay = 600 + Math.random() * 900;
+  setTimeout(showDot, delay);
+}
+
+// ── Tap handling ──────────────────────────────────────────────
+function tap(color) {
+  if (!active || tapLocked) return;
+  ctx.resume(); // unlock audio on first tap
+
+  const zone = document.getElementById('zone-' + color);
+
+  if (!current) {
+    // Nothing showing — wrong tap
+    flashZone(zone, 'wrong');
+    return;
+  }
+
+  if (color === current) {
+    // Correct!
+    clearTimeout(dotTimer);
+    cancelAnimationFrame(rafId);
+    c.clearRect(0, 0, canvas.width, canvas.height);
+    tapLocked = true;
+
+    flashZone(zone, 'flash');
+    dotEl.style.animation = 'dotCollect 0.3s ease-out forwards';
+    soundCollect();
+
+    const p = PLAYERS[color];
+    p.score++;
+    markCollected(color, p.score);
+    current = null;
+
+    if (p.score >= MAX) {
+      setTimeout(() => endGame(color), 350);
+    } else {
+      setTimeout(() => {
+        dotEl.textContent = '';
+        dotEl.style.cssText = '';
+        scheduleNext();
+      }, 320);
+    }
+  } else {
+    // Wrong color
+    flashZone(zone, 'wrong');
+    soundWrong();
+  }
+}
+
+function flashZone(zone, cls) {
+  zone.classList.add(cls);
+  setTimeout(() => zone.classList.remove(cls), 200);
+}
+
+// ── Keyboard support ──────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  const map = { w:'rosa', a:'pink', s:'blau', d:'gruen' };
+  const k = map[e.key.toLowerCase()];
+  if (k) tap(k);
+});
+
+// ── Game lifecycle ────────────────────────────────────────────
+function startGame() {
+  document.getElementById('overlay-start').style.display = 'none';
+  for (const key of Object.keys(PLAYERS)) {
+    document.getElementById('zone-' + key).classList.remove('winning');
+  }
+  buildScores();
+  active = true;
+  tapLocked = false;
+  scheduleNext();
+}
+
+function endGame(winner) {
+  active = false;
+  clearTimeout(dotTimer);
+  cancelAnimationFrame(rafId);
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  dotEl.textContent = ''; dotEl.style.cssText = '';
+  soundWin();
+  spawnConfetti();
+
+  const p = PLAYERS[winner];
+  document.getElementById('zone-' + winner).classList.add('winning');
+
+  document.getElementById('win-title').textContent = p.name + ' gewinnt!';
+  document.getElementById('win-title').style.color = p.color;
+
+  document.getElementById('win-scores').innerHTML =
+    Object.values(PLAYERS)
+      .sort((a,b) => b.score - a.score)
+      .map(pl => `<span style="color:${pl.color}">${pl.emoji.repeat(pl.score)} ${pl.name}: ${pl.score}</span>`)
+      .join('<br>');
+
+  setTimeout(() => {
+    document.getElementById('overlay-win').style.display = 'flex';
+  }, 600);
+}
+
+function resetGame() {
+  document.getElementById('overlay-win').style.display = 'none';
+  current = null;
+  tapLocked = false;
+  active = false;
+  dotEl.textContent = ''; dotEl.style.cssText = '';
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  startGame();
+}
+
+// ── Confetti ──────────────────────────────────────────────────
+function spawnConfetti() {
+  const colors = ['#f48fb1','#42a5f5','#66bb6a','#f06292','#ffeb3b','#ff9800'];
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.top = '-20px';
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.transform = `rotate(${Math.random()*360}deg)`;
+      el.style.animationDuration = (1.2 + Math.random() * 1) + 's';
+      document.body.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }, Math.random() * 800);
+  }
+}
+</script>
+</body>
+</html>
