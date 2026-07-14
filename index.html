@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Farbpunkte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -15,7 +17,7 @@ body {
   grid-template-rows: 110px 1fr 110px;
   background: #0d0d1a;
   overflow: hidden;
-  font-family: 'Segoe UI', 'Comic Sans MS', cursive, sans-serif;
+  font-family: 'Nunito', 'Segoe UI', Helvetica, Arial, sans-serif;
   touch-action: none;
   user-select: none;
 }
@@ -47,9 +49,9 @@ body {
 
 .zone-name {
   font-weight: 900;
-  font-size: clamp(10px, 2.5vw, 16px);
-  color: rgba(255,255,255,0.9);
-  letter-spacing: 1px;
+  font-size: clamp(11px, 2.5vw, 17px);
+  color: rgba(255,255,255,0.95);
+  letter-spacing: 2px;
   text-transform: uppercase;
 }
 .zone-symbols {
@@ -188,19 +190,22 @@ body {
 }
 .btn {
   padding: 16px 48px;
-  font-size: clamp(1.1em, 4vw, 1.5em);
+  font-size: clamp(1.1em, 4vw, 1.4em);
   border: none;
   border-radius: 50px;
   background: linear-gradient(135deg, #f48fb1 0%, #42a5f5 50%, #66bb6a 100%);
   color: white;
   cursor: pointer;
   font-family: inherit;
-  font-weight: 800;
+  font-weight: 900;
   box-shadow: 0 6px 30px rgba(0,0,0,0.5);
-  transition: transform 0.1s;
-  letter-spacing: 1px;
+  transition: transform 0.1s, box-shadow 0.1s;
+  letter-spacing: 0.5px;
 }
-.btn:active { transform: scale(0.94); }
+.btn:active {
+  transform: scale(0.94);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
 
 /* Win scores */
 #win-scores { line-height: 2.2; font-size: clamp(1.1em, 3.5vw, 1.4em); }
